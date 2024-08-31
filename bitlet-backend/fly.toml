@@ -20,7 +20,7 @@ primary_region = 'syd'
   cpus = 1
 
 [build]
-  image = "Dockerfile"
+  dockerfile = "Dockerfile"
 
 [env]
   # Set environment variables if needed

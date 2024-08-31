@@ -14,7 +14,7 @@ COPY . .
 RUN cargo build --release
 
 # Use a Debian-based image with a more recent glibc version
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 # Copy the compiled binary from the builder stage
 COPY --from=builder /usr/src/app/target/release/bitlet-backend /usr/local/bin/bitlet-backend

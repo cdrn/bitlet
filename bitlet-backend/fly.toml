@@ -7,7 +7,7 @@ app = 'bitlet'
 primary_region = 'syd'
 
 [http_service]
-  internal_port = 8080
+  internal_port = 3030 
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true

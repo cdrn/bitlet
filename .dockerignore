@@ -1,0 +1,3 @@
+# flyctl launch added from bitlet-backend/.gitignore
+bitlet-backend/target
+fly.toml

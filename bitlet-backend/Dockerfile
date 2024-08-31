@@ -17,7 +17,7 @@ RUN cargo build --release
 FROM debian:buster-slim
 
 # Copy the compiled binary from the builder stage
-COPY --from=builder /usr/src/app/target/release/bitlet /usr/local/bin/bitlet
+COPY --from=builder /usr/src/app/target/release/bitlet-backend /usr/local/bin/bitlet-backend
 
 # Expose the port the app runs on
 EXPOSE 3030

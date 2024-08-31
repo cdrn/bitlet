@@ -13,8 +13,8 @@ COPY . .
 # Build the application in release mode
 RUN cargo build --release
 
-# Create a smaller final image
-FROM debian:buster-slim
+# Use a Debian-based image with a more recent glibc version
+FROM debian:bullseye-slim
 
 # Copy the compiled binary from the builder stage
 COPY --from=builder /usr/src/app/target/release/bitlet-backend /usr/local/bin/bitlet-backend

@@ -50,7 +50,7 @@ async fn main() {
     let port = 3030;
 
     log::info!("bitlet-backend started! Listening on port: {}", port);
-    warp::serve(routes).run(([127, 0, 0, 1], port)).await;
+    warp::serve(routes).run(([0, 0, 0, 0], port)).await;
 }
 
 #[cfg(test)]

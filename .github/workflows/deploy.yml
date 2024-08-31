@@ -3,7 +3,7 @@ name: Deploy to Fly.io
 on:
   push:
     branches:
-      - master
+      - master  # use "master" instead of "main"
 
 jobs:
   deploy:
@@ -18,17 +18,23 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Install Flyctl
+        run: |
+          curl -L https://fly.io/install.sh | sh
+          export FLYCTL_INSTALL="$HOME/.fly/bin"
+          export PATH="$FLYCTL_INSTALL:$PATH"
+
       - name: Change directory to backend
         working-directory: ./bitlet-backend
         run: echo "Changed directory to bitlet-backend"
 
       - name: Log in to Fly.io
         env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}  # reference the secret from the environment
         run: flyctl auth token $FLY_API_TOKEN
 
       - name: Deploy to Fly.io
         working-directory: ./bitlet-backend
         env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}  # reference the secret from the environment
         run: flyctl deploy --remote-only

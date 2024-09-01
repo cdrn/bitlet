@@ -1,55 +1,75 @@
+use log::{info, warn};
+use md5::compute;
+use redis::AsyncCommands;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use warp::Filter;
+use std::env;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use warp::{any, path, query, reply::html, Filter, Rejection, Reply}; // Add this line
 
-type UrlMap = Arc<Mutex<HashMap<String, String>>>;
-
-fn shorten(
-    url_map: UrlMap,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path("shorten")
-        .and(warp::query::<HashMap<String, String>>())
-        .and(warp::any().map(move || Arc::clone(&url_map)))
-        .map(|params: HashMap<String, String>, url_map: UrlMap| {
-            if let Some(url) = params.get("url") {
-                let shortened_url = format!("{:x}", md5::compute(url));
-                let mut map = url_map.lock().unwrap();
-                map.insert(shortened_url.clone(), url.to_string());
-                log::info!("Shortened URL: {} -> {}", url, shortened_url);
-                warp::reply::html(format!("Shortened URL: {}", shortened_url))
-            } else {
-                log::warn!("Missing URL parameter");
-                warp::reply::html("Missing URL parameter".to_string())
-            }
-        })
+pub async fn handle_shorten(
+    params: HashMap<String, String>,
+    redis_conn: Arc<Mutex<redis::aio::Connection>>,
+) -> Result<impl Reply, Rejection> {
+    let mut redis_conn = redis_conn.lock().await;
+    if let Some(url) = params.get("url") {
+        let shortened_url = format!("{:x}", compute(url));
+        let _: () = redis_conn
+            .set(shortened_url.clone(), url.to_string())
+            .await
+            .expect("Could not connect to redis");
+        info!("Shortened URL: {} -> {}", url, shortened_url);
+        Ok(html(format!("Shortened URL: {}", shortened_url)))
+    } else {
+        warn!("Missing URL parameter");
+        Ok(html("Missing URL parameter".to_string()))
+    }
 }
 
-fn resolve(
-    url_map: UrlMap,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("resolve" / String)
-        .and(warp::any().map(move || Arc::clone(&url_map)))
-        .map(|shortened_url: String, url_map: UrlMap| {
-            let map = url_map.lock().unwrap();
-            if let Some(original_url) = map.get(&shortened_url) {
-                log::info!("Resolved URL: {} -> {}", shortened_url, original_url);
-                warp::reply::html(format!("Original URL: {}", original_url))
-            } else {
-                log::warn!("URL not found: {}", shortened_url);
-                warp::reply::html("URL not found".to_string())
-            }
-        })
+pub async fn handle_resolve(
+    shortened_url: String,
+    redis_conn: Arc<Mutex<redis::aio::Connection>>,
+) -> Result<impl Reply, Rejection> {
+    let mut redis_conn = redis_conn.lock().await;
+    let original_url: Option<String> = redis_conn.get(&shortened_url).await.unwrap();
+    if let Some(url) = original_url {
+        info!("Resolved URL: {} -> {}", shortened_url, url);
+        Ok(html(format!("Original URL: {}", url)))
+    } else {
+        warn!("URL not found: {}", shortened_url);
+        Ok(html("URL not found".to_string()))
+    }
+}
+
+fn with_redis(
+    redis_conn: Arc<Mutex<redis::aio::Connection>>,
+) -> impl Filter<Extract = (Arc<Mutex<redis::aio::Connection>>,), Error = std::convert::Infallible> + Clone
+{
+    any().map(move || redis_conn.clone())
 }
 
 #[tokio::main]
 async fn main() {
-    let url_map: UrlMap = Arc::new(Mutex::new(HashMap::new()));
+    dotenv::dotenv().ok();
+    let redis_url = env::var("REDIS_URL").expect("REDIS_URL must be set");
+    let client = redis::Client::open(redis_url).unwrap();
+    let redis_conn = client.get_async_connection().await.unwrap();
+    let redis_conn = Arc::new(Mutex::new(redis_conn));
 
-    let routes = shorten(Arc::clone(&url_map)).or(resolve(Arc::clone(&url_map)));
+    let shorten_filter = warp::path("shorten")
+        .and(warp::query::<HashMap<String, String>>())
+        .and(with_redis(redis_conn.clone()))
+        .and_then(handle_shorten);
+
+    let resolve_filter = warp::path!("resolve" / String)
+        .and(with_redis(redis_conn.clone()))
+        .and_then(handle_resolve);
+
+    let routes = shorten_filter.or(resolve_filter);
 
     let port = 3030;
 
-    log::info!("bitlet-backend started! Listening on port: {}", port);
+    info!("bitlet-backend started! Listening on port: {}", port);
     warp::serve(routes).run(([0, 0, 0, 0], port)).await;
 }
 

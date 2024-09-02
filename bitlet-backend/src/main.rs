@@ -1,11 +1,22 @@
 use log::{info, warn};
 use md5::compute;
 use redis::AsyncCommands;
+use serde::Serialize;
 use std::collections::HashMap;
 use std::env;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use warp::{any, path, query, reply::html, Filter, Rejection, Reply}; // Add this line
+use warp::{any, path, query, reply::json, Filter, Rejection, Reply};
+
+#[derive(Serialize)]
+struct UrlResponse {
+    message: String,
+}
+
+#[derive(Serialize)]
+struct UrlListResponse {
+    urls: HashMap<String, String>,
+}
 
 pub async fn handle_shorten(
     params: HashMap<String, String>,
@@ -19,10 +30,14 @@ pub async fn handle_shorten(
             .await
             .expect("Could not connect to redis");
         info!("Shortened URL: {} -> {}", url, shortened_url);
-        Ok(html(format!("Shortened URL: {}", shortened_url)))
+        Ok(json(&UrlResponse {
+            message: format!("Shortened URL: {}", shortened_url),
+        }))
     } else {
         warn!("Missing URL parameter");
-        Ok(html("Missing URL parameter".to_string()))
+        Ok(json(&UrlResponse {
+            message: "Missing URL parameter".to_string(),
+        }))
     }
 }
 
@@ -34,11 +49,29 @@ pub async fn handle_resolve(
     let original_url: Option<String> = redis_conn.get(&shortened_url).await.unwrap();
     if let Some(url) = original_url {
         info!("Resolved URL: {} -> {}", shortened_url, url);
-        Ok(html(format!("Original URL: {}", url)))
+        Ok(json(&UrlResponse {
+            message: format!("Original URL: {}", url),
+        }))
     } else {
         warn!("URL not found: {}", shortened_url);
-        Ok(html("URL not found".to_string()))
+        Ok(json(&UrlResponse {
+            message: "URL not found".to_string(),
+        }))
     }
+}
+
+pub async fn handle_list(
+    redis_conn: Arc<Mutex<redis::aio::Connection>>,
+) -> Result<impl Reply, Rejection> {
+    let mut redis_conn = redis_conn.lock().await;
+    let keys: Vec<String> = redis_conn.keys("*").await.unwrap();
+    let mut urls = HashMap::new();
+    for key in keys {
+        if let Ok(url) = redis_conn.get::<String, String>(key.clone()).await {
+            urls.insert(key, url);
+        }
+    }
+    Ok(json(&UrlListResponse { urls }))
 }
 
 fn with_redis(
@@ -65,7 +98,11 @@ async fn main() {
         .and(with_redis(redis_conn.clone()))
         .and_then(handle_resolve);
 
-    let routes = shorten_filter.or(resolve_filter);
+    let list_filter = warp::path("list")
+        .and(with_redis(redis_conn.clone()))
+        .and_then(handle_list);
+
+    let routes = shorten_filter.or(resolve_filter).or(list_filter);
 
     let port = 3030;
 

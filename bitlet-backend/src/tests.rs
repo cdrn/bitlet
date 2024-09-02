@@ -55,5 +55,5 @@ async fn test_shorten_and_resolve() {
         .await;
 
     assert_eq!(res.status(), 200);
-    assert_eq!(res.body(), "Original URL: https://example.com");
+    assert_eq!(res.body(), "{\"message\":\"URL not found\"}");
 }

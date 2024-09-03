@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::env;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use tower_http::cors::{Any, CorsLayer};
 use warp::cors::Cors;
 use warp::http::Method;
 use warp::{any, path, query, reply::json, Filter, Rejection, Reply};
@@ -106,10 +107,9 @@ async fn main() {
 
     let routes = shorten_filter.or(resolve_filter).or(list_filter);
 
-    let cors = Cors::new()
-        .allow_any_origin()
-        .allow_methods(&[Method::GET, Method::POST])
-        .allow_headers(vec!["Content-Type"]);
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods([Method::GET, Method::POST]);
 
     let routes = routes.with(cors);
 

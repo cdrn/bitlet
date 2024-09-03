@@ -6,6 +6,8 @@ use std::collections::HashMap;
 use std::env;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use warp::cors::Cors;
+use warp::http::Method;
 use warp::{any, path, query, reply::json, Filter, Rejection, Reply};
 
 #[derive(Serialize)]
@@ -103,6 +105,13 @@ async fn main() {
         .and_then(handle_list);
 
     let routes = shorten_filter.or(resolve_filter).or(list_filter);
+
+    let cors = Cors::new()
+        .allow_any_origin()
+        .allow_methods(&[Method::GET, Method::POST])
+        .allow_headers(vec!["Content-Type"]);
+
+    let routes = routes.with(cors);
 
     let port = 3030;
 

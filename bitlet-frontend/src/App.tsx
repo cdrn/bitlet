@@ -16,95 +16,48 @@ function App(): JSX.Element {
   return (
     <>
       <Navbar />
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "20px",
-          color: "#ffffff",
-        }}
-      >
-        <h1 style={{ marginBottom: "20px" }}>URL Shortener</h1>
+      <div className="flex flex-col items-center justify-center p-5 text-white">
+        <h1 className="mb-5 text-2xl tracking-wider">Bitlet</h1>
         <form
           onSubmit={handleSubmit}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            padding: "20px",
-            borderRadius: "8px",
-            boxShadow: "0 0 15px rgba(0, 0, 0, 0.5)",
-            maxWidth: "400px",
-            width: "100%",
-          }}
+          className="flex flex-col items-center p-5 rounded-lg shadow-lg max-w-md w-full"
         >
           <input
             type="text"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="Enter your URL"
-            style={{
-              width: "100%",
-              padding: "10px",
-              marginBottom: "15px",
-              border: "none",
-              borderRadius: "5px",
-              fontSize: "16px",
-              color: "#ffffff",
-            }}
+            className="w-full p-2 mb-4 rounded-md text-black"
           />
           <button
             type="submit"
-            style={{
-              width: "100%",
-              padding: "10px",
-              marginBottom: "15px",
-              border: "none",
-              borderRadius: "5px",
-              fontSize: "16px",
-              color: "#ffffff",
-              cursor: "pointer",
-              transition:
-                "background-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out",
-            }}
+            className="w-full p-2 mb-4 rounded-md text-white cursor-pointer transition-all duration-300 ease-in-out"
             onMouseDown={(e) => {
-              e.currentTarget.style.backgroundColor = "#00d9ff";
-              e.currentTarget.style.boxShadow = "0 0 10px #00d9ff";
+              e.currentTarget.classList.add("bg-neon-blue", "shadow-neon-blue");
             }}
             onMouseUp={(e) => {
-              e.currentTarget.style.backgroundColor = "#ff00ff";
-              e.currentTarget.style.boxShadow = "none";
+              e.currentTarget.classList.remove(
+                "bg-neon-blue",
+                "shadow-neon-blue"
+              );
+              e.currentTarget.classList.add("bg-neon-pink");
             }}
           >
             Shorten
           </button>
         </form>
         {shortenedUrl && (
-          <p
-            style={{
-              marginTop: "20px",
-              fontSize: "18px",
-              color: "#e0e0e0",
-              maxWidth: "400px",
-              wordWrap: "break-word",
-              textAlign: "center",
-            }}
-          >
+          <p className="mt-5 text-lg text-gray-300 max-w-md break-words text-center">
             Shortened URL:{" "}
             <a
               href={`http://${shortenedUrl}`}
-              style={{
-                color: "#00d9ff",
-                textDecoration: "none",
-                transition: "color 0.3s ease-in-out",
-              }}
+              className="text-neon-blue no-underline transition-colors duration-300 ease-in-out"
               onMouseOver={(e) => {
-                e.currentTarget.style.color = "#ff00ff";
+                e.currentTarget.classList.add("text-neon-pink");
               }}
               onMouseOut={(e) => {
-                e.currentTarget.style.color = "#00d9ff";
+                e.currentTarget.classList.remove("text-neon-pink");
+                e.currentTarget.classList.add("text-neon-blue");
               }}
             >
               {shortenedUrl}

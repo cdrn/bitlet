@@ -5,12 +5,32 @@ import Navbar from "./components/Navbar";
 function App(): JSX.Element {
   const [url, setUrl] = useState("");
   const [shortenedUrl, setShortenedUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would typically call your backend API to shorten the URL
-    // For now, we'll just simulate it
-    setShortenedUrl(`short.ly/${btoa(url).slice(0, 8)}`);
+    setLoading(true);
+    setError("");
+    setShortenedUrl("");
+
+    try {
+      const response = await fetch(
+        `https://bitlet.xyz/shorten?url=${encodeURIComponent(url)}`
+      );
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      const jsonResp = await response.json();
+      const message = jsonResp.message;
+      const shortenedUrl = message.split(": ")[1];
+      setShortenedUrl(shortenedUrl);
+    } catch (error) {
+      setError("Failed to shorten the URL. Please try again.");
+      console.error("Failed to shorten the URL:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -46,11 +66,13 @@ function App(): JSX.Element {
             Shorten
           </button>
         </form>
+        {loading && <p className="mt-5 text-lg text-gray-300">Loading...</p>}
+        {error && <p className="mt-5 text-lg text-red-500">{error}</p>}
         {shortenedUrl && (
           <p className="mt-5 text-lg text-gray-300 max-w-md break-words text-center">
             Shortened URL:{" "}
             <a
-              href={`http://${shortenedUrl}`}
+              href={`https://bitlet.xyz/resolve/${shortenedUrl}`}
               className="text-neon-blue no-underline transition-colors duration-300 ease-in-out"
               onMouseOver={(e) => {
                 e.currentTarget.classList.add("text-neon-pink");
@@ -60,7 +82,7 @@ function App(): JSX.Element {
                 e.currentTarget.classList.add("text-neon-blue");
               }}
             >
-              {shortenedUrl}
+              {`https://bitlet.xyz/resolve/${shortenedUrl}`}
             </a>
           </p>
         )}

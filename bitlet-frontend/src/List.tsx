@@ -45,7 +45,21 @@ function List(): JSX.Element {
                   {originalUrl}
                 </a>
               </span>
-              <span className="text-gray-400">{shortened}</span>
+              <span className="text-gray-400">
+                <a
+                  href={`https://bitlet.xyz/resolve/${shortened}`}
+                  className="text-neon-blue no-underline transition-colors duration-300 ease-in-out"
+                  onMouseOver={(e) => {
+                    e.currentTarget.classList.add("text-neon-pink");
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.classList.remove("text-neon-pink");
+                    e.currentTarget.classList.add("text-neon-blue");
+                  }}
+                >
+                  {`https://bitlet.xyz/resolve/${shortened}`}
+                </a>
+              </span>
             </li>
           ))}
         </ul>

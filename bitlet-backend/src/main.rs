@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::env;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use warp::http::Uri;
 use warp::{any, path, query, reply::json, Filter, Rejection, Reply};
 
 #[derive(Serialize)]
@@ -49,14 +50,13 @@ pub async fn handle_resolve(
     let original_url: Option<String> = redis_conn.get(&shortened_url).await.unwrap();
     if let Some(url) = original_url {
         info!("Resolved URL: {} -> {}", shortened_url, url);
-        Ok(json(&UrlResponse {
-            message: format!("Original URL: {}", url),
-        }))
+        let uri = url.parse::<warp::http::Uri>().unwrap();
+        Ok(warp::redirect::temporary(uri))
     } else {
         warn!("URL not found: {}", shortened_url);
-        Ok(json(&UrlResponse {
-            message: "URL not found".to_string(),
-        }))
+        Ok(warp::redirect::temporary(Uri::from_static(
+            "https://app.bitlet.xyz",
+        )))
     }
 }
 
